@@ -44,7 +44,9 @@ Before running the app, you need to find your device's IPv4 address (Wireless LA
 
 On Windows:
 
+```sh
 ipconfig
+```
 
 Look for the "IPv4 Address" under your active network connection.
 
