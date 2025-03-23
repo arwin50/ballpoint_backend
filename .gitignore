@@ -1,0 +1,35 @@
+# Django
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Virtual Environment
+venv/
+ENV/
+*.env
+*.venv
+
+# Database
+*.sqlite3
+*.db
+
+# Django Migrations
+**/migrations/*
+!**/migrations/__init__.py
+
+# Media and Static Files
+/media/
+/static/
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.iml
+*.sublime-workspace
+
+# OS Files
+.DS_Store
+Thumbs.db
