@@ -13,7 +13,6 @@ def user_view(request):
     serializer = CustomUserSerializer(request.user)
     return Response(serializer.data)
 
-
 @api_view(["POST"])
 def register_view(request):
     serializer = RegisterSerializer(data=request.data)

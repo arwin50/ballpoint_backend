@@ -30,20 +30,25 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG')
 
-ALLOWED_HOSTS = [os.getenv('DEVICE_IPV4')]
+ALLOWED_HOSTS = ["*"]
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_ALLOW_ALL = True
 
-CORS_ALLOW_HEADERS = [
-    'access-control-allow-origin',
-    'content-type'
-]
+# CORS_ALLOW_HEADERS = [
+#     'access-control-allow-origin',
+#     'content-type'
+# ]
 
-CORS_ALLOW_METHODS = [
-    'POST',
-    'GET'
-]
+# CORS_ALLOW_METHODS = [
+#     'POST',
+#     'GET'
+# ]
 # Application definition
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "hhttp://10.0.2.2:8000",
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
