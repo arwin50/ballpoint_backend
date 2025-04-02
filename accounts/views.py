@@ -2,7 +2,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework import status
 from .serializers import CustomUserSerializer, RegisterSerializer, LoginSerializer
 
@@ -29,42 +30,55 @@ def login_view(request):
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
-        response = Response(
-            {"access": access_token, "refresh": str(refresh)}, 
+        # Serialize user data
+        user_serializer = CustomUserSerializer(user)
+
+        return Response(
+            {
+                "access": access_token, 
+                "refresh": str(refresh),
+                "user": user_serializer.data
+            }, 
             status=status.HTTP_200_OK
         )
 
-        # Store refresh token in HTTP-only cookie (optional)
-        response.set_cookie(
-            key="refresh_token",
-            value=str(refresh),
-            httponly=True,
-            secure=True,
-            samesite="Lax"
-        )
-
-        return response
-
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
 def logout_view(request):
     try:
-        refresh_token = request.COOKIES.get("refresh_token")
+        # Get refresh token from request data instead of cookies
+        refresh_token = request.data.get("refresh")
         if refresh_token:
             token = RefreshToken(refresh_token)
             token.blacklist()  # Blacklist the refresh token
 
-        # Optionally, blacklist all user's tokens (requires `rest_framework_simplejwt.token_blacklist`)
-        OutstandingToken.objects.filter(user=request.user).delete()
+        # If user is authenticated, blacklist their tokens
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            OutstandingToken.objects.filter(user=request.user).delete()
 
     except Exception as e:
         return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Clear the cookie
-    response = Response({"message": "Successfully logged out"}, status=status.HTTP_205_RESET_CONTENT)
-    response.delete_cookie("refresh_token")
+    return Response({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
 
-    return response
+@api_view(["POST"])
+def refresh_jwt(request):
+    refresh_token = request.data.get("refresh")
+    
+    if not refresh_token:
+        return Response(
+            {"error": "Refresh token is required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        refresh = RefreshToken(refresh_token)
+        new_access_token = str(refresh.access_token)
+        return Response({"access": new_access_token})
+    except TokenError as e:
+        return Response(
+            {"error": "Invalid or expired refresh token."},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+        
