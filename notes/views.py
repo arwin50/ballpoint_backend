@@ -3,7 +3,6 @@ from .models import NoteDocument
 from rest_framework import generics
 from .serializers import NoteDocumentSerializer
 from django.db.models import Q
-
 class NoteDocumentListCreate(generics.ListCreateAPIView):
     queryset = NoteDocument.objects.all()
     serializer_class = NoteDocumentSerializer

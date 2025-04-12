@@ -17,7 +17,7 @@ class CategorySerializer(serializers.ModelSerializer):
         return category
 
 class NoteDocumentSerializer(serializers.ModelSerializer):
-    categories = CategorySerializer(many=True)
+    categories = CategorySerializer(many=True, required=False)
 
     class Meta:
         model = NoteDocument
