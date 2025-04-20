@@ -20,11 +20,13 @@ python -m venv venv
 ## 3. Activate the Virtual Environment
 
 ### On Windows:
+
 ```sh
 venv\Scripts\activate
 ```
 
 ### On macOS/Linux:
+
 ```sh
 source venv/bin/activate
 ```
@@ -36,7 +38,6 @@ source venv/bin/activate
 ```sh
 pip install -r requirements.txt
 ```
-
 
 ## 5. Find Your IPv4 Address on CMD
 
@@ -65,13 +66,20 @@ hostname -I
 ## 6. Make an env file
 
 ```sh
-DEVICE_IPV4=(yourip) no spaces dapat
+download lang sa gc HAHAHA
 ```
+
 ang other envs kay naa ras ato gc
 
-## 7. Run the Application
+## 7. Make Migrations
+
+```sh
+python manage.py makemigrations
+python manage.py migrations
+```
+
+## 8. Run the Application
 
 ```sh
 python manage.py runserver "ip:port"
 ```
-
