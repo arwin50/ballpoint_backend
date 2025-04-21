@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 import uuid
 
 class Category(models.Model):
@@ -14,6 +15,12 @@ class NoteDocument(models.Model):
     categories = models.ManyToManyField(Category)  # Many-to-Many relationship
     notesContent = models.TextField(blank=True)
     date = models.DateField()
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notes'
+    )
+
 
     def __str__(self):
         return f"{self.title} ({self.date})"

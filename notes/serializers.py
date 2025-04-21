@@ -24,12 +24,19 @@ class NoteDocumentSerializer(serializers.ModelSerializer):
         fields = ['noteID', 'title', 'categories', 'notesContent', 'date']
 
     def create(self, validated_data):
+        user = self.context['request'].user  # Get the current user
         categories_data = validated_data.pop('categories', [])
-        note_document = NoteDocument.objects.create(**validated_data)
         
+        validated_data.pop('user', None)
+        
+        # Create the NoteDocument without passing 'user' in validated_data
+        note_document = NoteDocument.objects.create(**validated_data, user=user)
+
+        # Add the categories to the note document
         for category in categories_data:
-            note_document.categories.add(category)
-        
+            category_instance = Category.objects.get(id=category['id'])  
+            note_document.categories.add(category_instance)
+
         return note_document
 
     def update(self, instance, validated_data):
@@ -40,6 +47,7 @@ class NoteDocumentSerializer(serializers.ModelSerializer):
         instance.save()
 
         if categories_data:
+            # Updating the categories
             instance.categories.set(categories_data)
 
         return instance
