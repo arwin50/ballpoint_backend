@@ -63,7 +63,6 @@ INSTALLED_APPS = [
     'accounts',
     'aiextract',
     'notes',
-    'categories'
 ]
 
 MIDDLEWARE = [
