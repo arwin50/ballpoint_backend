@@ -4,7 +4,7 @@ from .models import NoteDocument, Category
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['label', 'color']
+        fields = ['id', 'label', 'color']
 
     def to_internal_value(self, data):
         label = data.get('label')
@@ -13,8 +13,8 @@ class CategorySerializer(serializers.ModelSerializer):
         if not label:
             raise serializers.ValidationError({'label': 'This field is required.'})
         
-        category, created = Category.objects.get_or_create(label=label, defaults={'color': color})
-        return category
+        # Validate and return the data as a dictionary
+        return {'label': label, 'color': color}
 
 class NoteDocumentSerializer(serializers.ModelSerializer):
     categories = CategorySerializer(many=True, required=False)
@@ -33,9 +33,9 @@ class NoteDocumentSerializer(serializers.ModelSerializer):
         note_document = NoteDocument.objects.create(**validated_data, user=user)
 
         # Add the categories to the note document
-        for category in categories_data:
-            category_instance = Category.objects.get(id=category['id'])  
-            note_document.categories.add(category_instance)
+        for category_data in categories_data:
+            category, created = Category.objects.get_or_create(**category_data)
+            note_document.categories.add(category)
 
         return note_document
 
@@ -47,7 +47,10 @@ class NoteDocumentSerializer(serializers.ModelSerializer):
         instance.save()
 
         if categories_data:
-            # Updating the categories
-            instance.categories.set(categories_data)
+            category_instances = []
+            for category_data in categories_data:
+                category, created = Category.objects.get_or_create(**category_data)
+                category_instances.append(category)
+            instance.categories.set(category_instances)
 
         return instance

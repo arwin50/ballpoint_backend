@@ -22,5 +22,4 @@ urlpatterns = [
     path('api/',include('accounts.urls')),
     path('extract/',include('aiextract.urls')),
     path('notes/',include('notes.urls')),
-    path('categories/', include('categories.urls')),
 ]

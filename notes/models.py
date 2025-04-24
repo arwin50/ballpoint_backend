@@ -3,8 +3,14 @@ from django.conf import settings
 import uuid
 
 class Category(models.Model):
-    label = models.CharField(max_length=100, primary_key=True)  # Unique category name
-    color = models.CharField(max_length=50)  # Color associated with the category
+    id = models.CharField(
+        max_length=255,
+        primary_key=True,
+        default=uuid.uuid4, 
+        editable=False
+    )
+    label = models.CharField(max_length=255)
+    color = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return self.label
