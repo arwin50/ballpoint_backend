@@ -17,7 +17,7 @@ class Category(models.Model):
 class NoteDocument(models.Model):
     noteID = models.CharField(primary_key=True, default=uuid.uuid4, max_length=50)
     title = models.CharField(max_length=255)
-    categories = models.ManyToManyField(Category)  # Many-to-Many relationship
+    categories = models.ManyToManyField('notes.Category')  # Many-to-Many relationship
     notesContent = models.TextField(blank=True)
     date = models.DateField()
 
