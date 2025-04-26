@@ -98,24 +98,25 @@ def refresh_jwt(request):
 @api_view(["POST"])
 def google_login_view(request):
     id_token_from_client = request.data.get('id_token')
-
     if not id_token_from_client:
         return Response({'error': 'ID token is required'}, status=status.HTTP_400_BAD_REQUEST)
-
+ 
     try:
-        # Verify the token against Google's servers
+        print("token", id_token_from_client)
+        print("client",os.getenv('GOOGLE_CLIENT_ID'))
         id_info = google_id_token.verify_oauth2_token(
             id_token_from_client,
             google_requests.Request(),
             os.getenv('GOOGLE_CLIENT_ID') 
         )
-
+        
         email = id_info.get('email')
         first_name = id_info.get('given_name', '')
         last_name = id_info.get('family_name', '')
         username = email.split('@')[0]  # basic username
 
         if not email:
+            print('here')
             return Response({'error': 'Google account did not return an email'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Try to get existing user, or create if not exists
