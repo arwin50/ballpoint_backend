@@ -60,6 +60,10 @@ class NoteDocumentListCreate(generics.ListCreateAPIView):
 class NoteDocumentDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = NoteDocumentSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        return NoteDocument.objects.filter(user=user)  # Filter by the logged-in user
     
 class UpdateNoteCategoriesView(APIView):
     def put(self, request, id):
@@ -69,6 +73,7 @@ class UpdateNoteCategoriesView(APIView):
 
             # Wrap the categories list in a dictionary
             serializer = CategoryIDSerializer(data={"categories": request.data.get('categories', [])})
+            print("Request data:", request.data)  # Debugging line
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
