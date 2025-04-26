@@ -2,6 +2,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import NoteDocument, Category
 from rest_framework import generics
 from .serializers import NoteDocumentSerializer, CategorySerializer, CategoryIDSerializer
+from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 
 from rest_framework.views import APIView
@@ -35,12 +36,13 @@ class CategoryDeleteView(DestroyAPIView):
     lookup_field = 'id'
 
 class NoteDocumentListCreate(generics.ListCreateAPIView):
-    queryset = NoteDocument.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = NoteDocumentSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        user = self.request.user
+        queryset = NoteDocument.objects.filter(user=user) 
         search_query = self.request.GET.get('search', '')
 
         if search_query:
@@ -50,8 +52,12 @@ class NoteDocumentListCreate(generics.ListCreateAPIView):
 
         return queryset
 
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)  
+
+
 class NoteDocumentDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = NoteDocument.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = NoteDocumentSerializer
     
 class UpdateNoteCategoriesView(APIView):
@@ -97,3 +103,19 @@ class UpdateNoteCategoriesView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    def get_queryset(self):
+        user = self.request.user
+        return NoteDocument.objects.filter(user=user) 
+
+
+
+class CategoryListCreate(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    lookup_field = "label"

@@ -6,6 +6,19 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework import status
 from .serializers import CustomUserSerializer, RegisterSerializer, LoginSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+User = get_user_model()
 
 
 @api_view(["GET"])
@@ -81,4 +94,62 @@ def refresh_jwt(request):
             {"error": "Invalid or expired refresh token."},
             status=status.HTTP_401_UNAUTHORIZED
         )
+
+@api_view(["POST"])
+def google_login_view(request):
+    id_token_from_client = request.data.get('id_token')
+    if not id_token_from_client:
+        return Response({'error': 'ID token is required'}, status=status.HTTP_400_BAD_REQUEST)
+ 
+    try:
+        print("token", id_token_from_client)
+        print("client",os.getenv('GOOGLE_CLIENT_ID'))
+        id_info = google_id_token.verify_oauth2_token(
+            id_token_from_client,
+            google_requests.Request(),
+            os.getenv('GOOGLE_CLIENT_ID') 
+        )
         
+        email = id_info.get('email')
+        first_name = id_info.get('given_name', '')
+        last_name = id_info.get('family_name', '')
+        username = email.split('@')[0]  # basic username
+
+        if not email:
+            print('here')
+            return Response({'error': 'Google account did not return an email'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Try to get existing user, or create if not exists
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                'username': username,
+                # Optionally: set is_active=True if you want immediate login
+                'is_active': True,
+            }
+        )
+
+        # You could update names if user was just created
+        if created:
+            user.first_name = first_name
+            user.last_name = last_name
+            user.save()
+
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+
+        # Serialize user data
+        from .serializers import CustomUserSerializer
+        user_serializer = CustomUserSerializer(user)
+        
+        print("access_token", access_token)
+
+        return Response({
+            "access": access_token,
+            "refresh": str(refresh),
+            "user": user_serializer.data
+        }, status=status.HTTP_200_OK)
+
+    except ValueError:
+        return Response({'error': 'Invalid ID token'}, status=status.HTTP_400_BAD_REQUEST)
