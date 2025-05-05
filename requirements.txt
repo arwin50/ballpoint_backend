@@ -27,3 +27,7 @@ typing-inspection==0.4.0
 typing_extensions==4.13.0
 tzdata==2025.2
 django-allauth
+django-allauth
+google-auth==2.29.0
+google-auth-oauthlib==1.2.0
+openai

@@ -8,6 +8,13 @@ from rest_framework.decorators import api_view
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from .utils.ocr import process_ocr
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+client = OpenAI(api_key=os.getenv('DEEPSEEK_API_KEY'), base_url="https://api.deepseek.com")
 
 @api_view(["POST"])
 def extract_text(request):
@@ -25,3 +32,22 @@ def extract_text(request):
         return Response({"error": f"OCR processing failed: {str(e)}"}, status=500)
 
     return Response({"text": extracted_text}, status=200)
+
+
+@api_view(["POST"])
+def summarize_text(request):
+    user_input = request.data.get("text", "")
+    if not user_input:
+        return Response({"error": "No text provided"}, status=400)
+
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that summarizes text."},
+            {"role": "user", "content": f"Summarize this: {user_input}"},
+        ],
+        stream=False
+    )
+
+    summary = response.choices[0].message.content
+    return Response({"summary": summary})
