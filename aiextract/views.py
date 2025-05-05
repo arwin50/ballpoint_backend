@@ -52,37 +52,83 @@ def summarize_text(request):
     summary = response.choices[0].message.content
     return Response({"summary": summary})
 
-class WhisperTranscribeView(APIView):
-     def post(self, request):
-         try:
-             print("FILES:", request.FILES)
-             audio_file = request.FILES.get("audio") or request.FILES.get("file")  # fallback if key is "file"
+@api_view(['POST'])
+def whisper_transcribe(request):
+    try:
+        print("FILES:", request.FILES)
+        audio_file = request.FILES.get("audio") or request.FILES.get("file")  # fallback if key is "file"
  
-             if not audio_file:
-                 return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
+        if not audio_file:
+            return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
  
-             temp_dir = "temp_uploads"
-             os.makedirs(temp_dir, exist_ok=True)
+        temp_dir = "temp_uploads"
+        os.makedirs(temp_dir, exist_ok=True)
  
-             temp_filename = os.path.join(temp_dir, f"temp_{audio_file.name}")
+        temp_filename = os.path.join(temp_dir, f"temp_{audio_file.name}")
  
-             with open(temp_filename, "wb+") as f:
-                 for chunk in audio_file.chunks():
-                     f.write(chunk)
+        with open(temp_filename, "wb+") as f:
+            for chunk in audio_file.chunks():
+                f.write(chunk)
  
-             print(f"Saved audio to: {temp_filename}")
+        print(f"Saved audio to: {temp_filename}")
  
-             model = whisper.load_model("base")  # You can change this to "tiny", etc. for faster speed
-             result = model.transcribe(temp_filename)
-             transcript = result["text"]
+        model = whisper.load_model("base")  # You can change this to "tiny", etc. for faster speed
+        result = model.transcribe(temp_filename)
+        transcript = result["text"]
  
-             return Response({"transcript": transcript})
+        return Response({"transcript": transcript})
  
-         except Exception as e:
-             import traceback
-             traceback.print_exc()
-             return Response({"error": f"Exception occurred: {str(e)}"}, status=500)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({"error": f"Exception occurred: {str(e)}"}, status=500)
  
-         finally:
-             if os.path.exists(temp_filename):
-                 os.remove(temp_filename)
+    finally:
+        if os.path.exists(temp_filename):
+            os.remove(temp_filename)
+                 
+@api_view(["POST"])
+def organize_text(request):
+    user_input = request.data.get("text", "")
+    mode = request.data.get("mode", "").lower().strip()  # example: 'bulleted' or 'paragraph'
+
+    if not user_input:
+        return Response({"error": "No text provided"}, status=400)
+    if mode not in ["bulleted", "paragraph"]:
+        return Response({"error": "Invalid or missing mode. Supported modes: 'bulleted', 'paragraph'."}, status=400)
+
+    if mode == "bulleted":
+        prompt = (
+            "Organize the following text using **clear headings, subheadings, and bullet points**. "
+            "Group related ideas and make the structure easy to scan:\n\n" + user_input
+        )
+    elif mode == "paragraph":
+        prompt = (
+            "Organize the following text using **headings and subheadings**, but write the content in "
+            "**paragraph form under each section**. Make the structure logical and easy to follow:\n\n" + user_input
+        )
+    else:
+        prompt = f"Organize and format the following text into {mode} format:\n\n{user_input}"  # fallback
+
+    try:
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that organizes and formats unstructured text into a clear and readable format."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            stream=False
+        )
+
+        organized_text = response.choices[0].message.content
+        return Response({"organized": organized_text})
+
+    except Exception as e:
+        traceback.print_exc()
+        return Response({"error": f"Organization failed: {str(e)}"}, status=500)
