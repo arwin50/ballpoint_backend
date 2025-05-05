@@ -13,8 +13,14 @@ class CategorySerializer(serializers.ModelSerializer):
         if not label:
             raise serializers.ValidationError({'label': 'This field is required.'})
         
-        # Validate and return the data as a dictionary
         return {'label': label, 'color': color}
+
+class CategoryIDSerializer(serializers.Serializer):
+    categories = serializers.ListField(
+        child=serializers.CharField(),  # Specify that the list contains strings
+        required=True,
+        help_text="List of category IDs"
+    )
 
 class NoteDocumentSerializer(serializers.ModelSerializer):
     categories = CategorySerializer(many=True, required=False)
