@@ -1,3 +1,8 @@
+import os
+import whisper
+import traceback  # ← ADD THIS LINE
+from rest_framework.views import APIView
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.core.files.storage import default_storage
@@ -6,6 +11,8 @@ from .utils.ocr import process_ocr
 
 @api_view(["POST"])
 def extract_text(request):
+    print("FILES:", request.FILES)
+
     if "image" not in request.FILES:
         return Response({"error": "No image file provided"}, status=400)
     
@@ -20,3 +27,38 @@ def extract_text(request):
         return Response({"error": f"OCR processing failed: {str(e)}"}, status=500)
 
     return Response({"text": extracted_text}, status=200)
+
+class WhisperTranscribeView(APIView):
+    def post(self, request):
+        try:
+            print("FILES:", request.FILES)
+            audio_file = request.FILES.get("audio") or request.FILES.get("file")  # fallback if key is "file"
+
+            if not audio_file:
+                return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+            temp_dir = "temp_uploads"
+            os.makedirs(temp_dir, exist_ok=True)
+
+            temp_filename = os.path.join(temp_dir, f"temp_{audio_file.name}")
+
+            with open(temp_filename, "wb+") as f:
+                for chunk in audio_file.chunks():
+                    f.write(chunk)
+
+            print(f"Saved audio to: {temp_filename}")
+
+            model = whisper.load_model("base")  # You can change this to "tiny", etc. for faster speed
+            result = model.transcribe(temp_filename)
+            transcript = result["text"]
+
+            return Response({"transcript": transcript})
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({"error": f"Exception occurred: {str(e)}"}, status=500)
+
+        finally:
+            if os.path.exists(temp_filename):
+                os.remove(temp_filename)
