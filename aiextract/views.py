@@ -51,3 +51,38 @@ def summarize_text(request):
 
     summary = response.choices[0].message.content
     return Response({"summary": summary})
+
+class WhisperTranscribeView(APIView):
+     def post(self, request):
+         try:
+             print("FILES:", request.FILES)
+             audio_file = request.FILES.get("audio") or request.FILES.get("file")  # fallback if key is "file"
+ 
+             if not audio_file:
+                 return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
+ 
+             temp_dir = "temp_uploads"
+             os.makedirs(temp_dir, exist_ok=True)
+ 
+             temp_filename = os.path.join(temp_dir, f"temp_{audio_file.name}")
+ 
+             with open(temp_filename, "wb+") as f:
+                 for chunk in audio_file.chunks():
+                     f.write(chunk)
+ 
+             print(f"Saved audio to: {temp_filename}")
+ 
+             model = whisper.load_model("base")  # You can change this to "tiny", etc. for faster speed
+             result = model.transcribe(temp_filename)
+             transcript = result["text"]
+ 
+             return Response({"transcript": transcript})
+ 
+         except Exception as e:
+             import traceback
+             traceback.print_exc()
+             return Response({"error": f"Exception occurred: {str(e)}"}, status=500)
+ 
+         finally:
+             if os.path.exists(temp_filename):
+                 os.remove(temp_filename)
