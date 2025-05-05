@@ -31,3 +31,7 @@ django-allauth
 google-auth==2.29.0
 google-auth-oauthlib==1.2.0
 openai
+openai-whisper
+torch
+torchvision
+torchaudio
