@@ -5,7 +5,7 @@ from .models import CustomUser
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ["id", "username", "email"]
+        fields = ["id", "username", "email", "date_joined"]
         
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -42,3 +42,12 @@ class LoginSerializer(serializers.Serializer):
         if not user.is_active:
             raise serializers.ValidationError("This account is inactive.")
         return user 
+    
+class UpdateUsernameSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True, min_length=3, max_length=150)
+
+    def validate_username(self, value):
+        # Check if username already exists
+        if CustomUser.objects.filter(username=value).exists():
+            raise serializers.ValidationError("This username is already taken.")
+        return value

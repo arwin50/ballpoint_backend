@@ -5,7 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework import status
-from .serializers import CustomUserSerializer, RegisterSerializer, LoginSerializer
+from .serializers import CustomUserSerializer, RegisterSerializer, LoginSerializer, UpdateUsernameSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -153,3 +153,22 @@ def google_login_view(request):
 
     except ValueError:
         return Response({'error': 'Invalid ID token'}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def update_username(request):
+    serializer = UpdateUsernameSerializer(data=request.data)
+    if serializer.is_valid():
+        user = request.user  # Get the authenticated user
+        new_username = serializer.validated_data["username"]
+        
+        # Update the username
+        user.username = new_username
+        user.save()
+
+        # Return the updated user data
+        from .serializers import CustomUserSerializer
+        user_serializer = CustomUserSerializer(user)
+        return Response(user_serializer.data, status=200)
+
+    return Response(serializer.errors, status=400)
