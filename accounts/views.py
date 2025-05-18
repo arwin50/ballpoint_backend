@@ -1,14 +1,15 @@
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework import status
 from .serializers import CustomUserSerializer, RegisterSerializer, LoginSerializer, UpdateUsernameSerializer
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics, permissions
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token as google_id_token
@@ -172,3 +173,16 @@ def update_username(request):
         return Response(user_serializer.data, status=200)
 
     return Response(serializer.errors, status=400)
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+@permission_classes([IsAuthenticated])
+def upload_profile_picture(request):
+    user = request.user
+    if 'photo' in request.FILES:
+        user.profile_picture = request.FILES['photo']
+        user.save()
+        return Response({
+            "profile_picture": user.profile_picture.url  # Cloudinary URL
+        }, status=200)
+    return Response({"error": "No photo uploaded."}, status=400)
