@@ -64,6 +64,8 @@ INSTALLED_APPS = [
     'accounts',
     'aiextract',
     'notes',
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
@@ -178,6 +180,12 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
+# Cloudinary
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'ballpoint',
+    'API_KEY': '133333639279382',
+    'API_SECRET': 'nHHcRAl9Mw6kMATRzeE7l9Ot2-4',
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -201,3 +209,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = "accounts.CustomUser"
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
