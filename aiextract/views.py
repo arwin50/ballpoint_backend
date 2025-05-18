@@ -132,3 +132,69 @@ def organize_text(request):
     except Exception as e:
         traceback.print_exc()
         return Response({"error": f"Organization failed: {str(e)}"}, status=500)
+    
+@api_view(["POST"])
+def complete_text(request):
+    selected_text = request.data.get("selected_text", "")
+    note_content = request.data.get("note_content", "")
+
+    if not selected_text or not note_content:
+        return Response({"error": "Both selectedText and noteContent are required."}, status=400)
+
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": (
+                "You are a helpful assistant that completes or clarifies vague or incomplete text. "
+                "Use the provided context from the note to make the completion relevant. "
+                "You may also use relevant external information if it enhances the clarity or meaning, "
+                "but only if it is strongly related to the topic discussed in the note."
+                "Provide the final, polished completion or answer only."
+                "Avoid unnecessary explanations or disclaimers."
+                
+            )},
+            {"role": "user", "content": (
+                f"The note content is:\n{note_content}\n\n"
+                f"The selected vague or incomplete text is:\n\"{selected_text}\"\n\n"
+                "Please complete or clarify this text using the note and relevant information."
+            )},
+        ],
+        stream=False
+    )
+
+    completed_text = response.choices[0].message.content
+    return Response({"completedText": completed_text})
+
+@api_view(["POST"])
+def query_text(request):
+    selected_text = request.data.get("selected_text", "")
+    note_content = request.data.get("note_content", "")
+    query = request.data.get("query", "")
+
+    if not selected_text or not note_content or not query:
+        return Response({"error": "selectedText, noteContent, and query are all required."}, status=400)
+
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": (
+                "You are a helpful assistant. A user is asking a question about a confusing or unclear part of their note. "
+                "Use the selected text and the full note content as primary context. "
+                "You may include relevant external information, but only if it is directly related to the note's topic."
+                "Provide the final, polished completion or answer only."
+                "Avoid unnecessary explanations or disclaimers."
+                "Limit your response to 3-5 sentences."
+                
+            )},
+            {"role": "user", "content": (
+                f"Here is the note:\n{note_content}\n\n"
+                f"The selected text in question is:\n\"{selected_text}\"\n\n"
+                f"The user asks: {query}\n\n"
+                "Please provide a clear and helpful explanation or answer based on the context."
+            )},
+        ],
+        stream=False
+    )
+
+    answer = response.choices[0].message.content
+    return Response({"answer": answer})

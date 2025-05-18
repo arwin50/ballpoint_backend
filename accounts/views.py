@@ -110,6 +110,7 @@ def google_login_view(request):
             os.getenv('GOOGLE_CLIENT_ID') 
         )
         
+        print('asdsadasd')
         email = id_info.get('email')
         first_name = id_info.get('given_name', '')
         last_name = id_info.get('family_name', '')
@@ -151,5 +152,6 @@ def google_login_view(request):
             "user": user_serializer.data
         }, status=status.HTTP_200_OK)
 
-    except ValueError:
-        return Response({'error': 'Invalid ID token'}, status=status.HTTP_400_BAD_REQUEST)
+    except ValueError as e:
+        print("Google token verification error:", e)
+        return Response({'error': f'Invalid ID token: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
