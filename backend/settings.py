@@ -182,9 +182,9 @@ SIMPLE_JWT = {
 
 # Cloudinary
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'ballpoint',
-    'API_KEY': '133333639279382',
-    'API_SECRET': 'nHHcRAl9Mw6kMATRzeE7l9Ot2-4',
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
 }
 
 # Internationalization
@@ -219,4 +219,4 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_URL = 'https://res.cloudinary.com/ballpoint/image/upload/'
+MEDIA_URL = 'https://res.cloudinary.com/' + os.getenv('CLOUDINARY_CLOUD_NAME') + '/image/upload/'
