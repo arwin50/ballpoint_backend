@@ -34,6 +34,7 @@ torchvision==0.22.0
 torchaudio==2.7.0
 gunicorn==23.0.0
 cloudinary==1.44.0
+django-cloudinary-storage==0.3.0
 
 # Whisper from GitHub (latest stable)
 git+https://github.com/openai/whisper.git
