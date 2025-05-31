@@ -1,8 +1,9 @@
 # Use a lightweight Python image
 FROM python:3.11-slim
 
-# Install ffmpeg and dependencies
+# Install ffmpeg, git, and other dependencies
 RUN apt-get update && apt-get install -y \
+    git \
     ffmpeg \
     libsndfile1 \
     build-essential \
@@ -18,11 +19,8 @@ COPY . /app
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Optional: collect static files (if needed)
-# RUN python manage.py collectstatic --noinput
-
-# Expose port
+# Expose port (default for gunicorn)
 EXPOSE 8000
 
-# Run Django migrations and start the app
-CMD ["sh", "-c", "python manage.py makemigrations && python manage.py migrate && gunicorn backend.wsgi:application --bind 0.0.0.0:8000"]
+# Run using gunicorn
+CMD ["gunicorn", "ballpoint_backend.wsgi:application", "--bind", "0.0.0.0:8000"]
