@@ -14,6 +14,8 @@ from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
 from django.conf import settings
+import dj_database_url
+
 
 load_dotenv()
 
@@ -46,9 +48,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 # Application definition
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://10.0.2.2:8000",
-]
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -112,11 +112,13 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default='sqlite:///db.sqlite3',  # fallback
+        conn_max_age=600,  # persistent connections
+        ssl_require=True   # required for DO
+    )
 }
 
 
