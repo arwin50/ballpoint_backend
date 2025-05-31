@@ -35,3 +35,4 @@ openai-whisper
 torch
 torchvision
 torchaudio
+gunicorn==23.0.0
