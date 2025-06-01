@@ -214,9 +214,17 @@ def query_text(request):
 @api_view(["POST"])
 def async_transcribe(request):
     try:
+        print("Received request to async_transcribe")
+
+        # Check what files you got in the request
+        print("FILES keys received:", list(request.FILES.keys()))
+        
         audio_file = request.FILES.get("audio") or request.FILES.get("file")
         if not audio_file:
+            print("No audio file found in request")
             return Response({"error": "No audio file provided"}, status=400)
+        
+        print(f"Received file: {audio_file.name}, content_type: {audio_file.content_type}")
 
         temp_dir = "temp_uploads"
         os.makedirs(temp_dir, exist_ok=True)
@@ -225,15 +233,27 @@ def async_transcribe(request):
         with open(temp_path, "wb+") as f:
             for chunk in audio_file.chunks():
                 f.write(chunk)
+        print(f"Saved uploaded file to: {temp_path}")
 
         bucket_name = "ballpoint-bucket"
+        
+        # Print before uploading to GCS
+        print(f"Uploading {temp_path} to bucket {bucket_name}")
         gcs_uri = upload_to_gcs(temp_path, bucket_name, f"uploads/{audio_file.name}")
+        print(f"Uploaded file to GCS at {gcs_uri}")
 
-        client = speech.SpeechClient(credentials=get_google_credentials())
+        # Check credentials info
+        creds = get_google_credentials()
+        print(f"Using Google credentials for project_id: {creds.project_id}")
+
+        client = speech.SpeechClient(credentials=creds)
         audio = speech.RecognitionAudio(uri=gcs_uri)
+
         try:
             encoding = get_encoding_from_filename(audio_file.name)
+            print(f"Detected encoding: {encoding}")
         except ValueError as ve:
+            print(f"Encoding error: {str(ve)}")
             return Response({"error": str(ve)}, status=400)
 
         config = speech.RecognitionConfig(
@@ -243,6 +263,7 @@ def async_transcribe(request):
             enable_automatic_punctuation=True
         )
 
+        print("Calling Google Speech API long_running_recognize...")
         operation = client.long_running_recognize(config=config, audio=audio)
         print("Waiting for operation to complete...")
         response = operation.result(timeout=120)
@@ -250,13 +271,17 @@ def async_transcribe(request):
         transcript = ""
         for result in response.results:
             transcript += result.alternatives[0].transcript + " "
+        print(f"Transcription result: {transcript.strip()}")
 
         return Response({"transcript": transcript.strip()})
 
     except Exception as e:
+        import traceback
         traceback.print_exc()
+        print(f"Exception occurred: {str(e)}")
         return Response({"error": f"Exception occurred: {str(e)}"}, status=500)
 
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+            print(f"Cleaned up temporary file {temp_path}")
