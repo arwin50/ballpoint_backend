@@ -18,7 +18,7 @@ def get_google_credentials():
     import base64
     import json
 
-    b64_creds = os.getenv("GOOGLE_CREDENTIALS_B64")
+    b64_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if not b64_creds:
         raise Exception("Missing GOOGLE_CREDENTIALS_B64 env var")
 
