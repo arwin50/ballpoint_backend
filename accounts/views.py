@@ -14,6 +14,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
+from google.auth.exceptions import GoogleAuthError
 from dotenv import load_dotenv
 import os
 
@@ -103,22 +104,20 @@ def google_login_view(request):
         return Response({'error': 'ID token is required'}, status=status.HTTP_400_BAD_REQUEST)
  
     try:
-        print("token", id_token_from_client)
-        print("client",os.getenv('GOOGLE_CLIENT_ID'))
         id_info = google_id_token.verify_oauth2_token(
             id_token_from_client,
             google_requests.Request(),
             os.getenv('GOOGLE_CLIENT_ID') 
         )
         
-        print('asdsadasd')
+
         email = id_info.get('email')
         first_name = id_info.get('given_name', '')
         last_name = id_info.get('family_name', '')
         username = email.split('@')[0]  # basic username
 
         if not email:
-            print('here')
+       
             return Response({'error': 'Google account did not return an email'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Try to get existing user, or create if not exists
@@ -153,8 +152,17 @@ def google_login_view(request):
             "user": user_serializer.data
         }, status=status.HTTP_200_OK)
 
-    except ValueError:
-        return Response({'error': 'Invalid ID token'}, status=status.HTTP_400_BAD_REQUEST)
+    except ValueError as ve:
+        print("ValueError:", ve)
+        return Response({'error': str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+
+    except GoogleAuthError as ge:
+        print("GoogleAuthError:", ge)
+        return Response({'error': str(ge)}, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        print("Unexpected error:", e)
+        return Response({'error': 'Unexpected error: ' + str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
