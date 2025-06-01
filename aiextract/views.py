@@ -15,6 +15,7 @@ from google.cloud import storage
 from google.cloud import speech_v1p1beta1 as speech
 import time
 from aiextract.utils.google_stt_utils import upload_to_gcs, get_encoding_from_filename
+from backend.settings import get_google_credentials
 
 load_dotenv()
 
@@ -231,7 +232,7 @@ def async_transcribe(request):
         bucket_name = "ballpoint-bucket"
         gcs_uri = upload_to_gcs(temp_path, bucket_name, f"uploads/{audio_file.name}")
 
-        client = speech.SpeechClient()
+        client = speech.SpeechClient(credentials=get_google_credentials())
         audio = speech.RecognitionAudio(uri=gcs_uri)
         try:
             encoding = get_encoding_from_filename(audio_file.name)

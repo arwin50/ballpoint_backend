@@ -22,7 +22,6 @@ load_dotenv()
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-google_creds_json = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
 
 def get_google_credentials():
     info = {
