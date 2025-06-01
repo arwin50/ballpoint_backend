@@ -16,6 +16,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 from django.conf import settings
 import dj_database_url
+from google.oauth2 import service_account
 
 load_dotenv()
 
@@ -23,11 +24,23 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 google_creds_json = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
 
-if google_creds_json:
-    temp = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
-    temp.write(google_creds_json.encode())
-    temp.flush()
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp.name
+def get_google_credentials():
+    info = {
+        "type": os.getenv("GCP_TYPE"),
+        "project_id": os.getenv("GCP_PROJECT_ID"),
+        "private_key_id": os.getenv("GCP_PRIVATE_KEY_ID"),
+        "private_key": os.getenv("GCP_PRIVATE_KEY").replace('\\n', '\n'),
+        "client_email": os.getenv("GCP_CLIENT_EMAIL"),
+        "client_id": os.getenv("GCP_CLIENT_ID"),
+        "auth_uri": os.getenv("GCP_AUTH_URI"),
+        "token_uri": os.getenv("GCP_TOKEN_URI"),
+        "auth_provider_x509_cert_url": os.getenv("GCP_AUTH_PROVIDER_CERT_URL"),
+        "client_x509_cert_url": os.getenv("GCP_CLIENT_CERT_URL"),
+        "universe_domain": os.getenv("GCP_UNIVERSE_DOMAIN")
+    }
+
+    credentials = service_account.Credentials.from_service_account_info(info)
+    return credentials
 
 
 
