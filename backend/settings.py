@@ -23,6 +23,7 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
 def get_google_credentials():
     info = {
         "type": os.getenv("GCP_TYPE"),
