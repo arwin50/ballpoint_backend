@@ -47,7 +47,12 @@ def summarize_text(request):
     response = client.chat.completions.create(
         model="deepseek-chat",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that summarizes text."},
+            {"role": "system", 
+             "content": (
+                          "You are a helpful assistant that summarizes text.\n"
+                           "Do not include any introductory phrases, explanations, or disclaimers. Respond directly with the summarize output only.\n"
+                           "Make sure to include all important details and key points in the summary."
+                         )},
             {"role": "user", "content": f"Summarize this: {user_input}"},
         ],
         stream=False
@@ -120,7 +125,12 @@ def organize_text(request):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a helpful assistant that organizes and formats unstructured text into a clear and readable format."
+                    "content": (
+                    "You are a helpful assistant that organizes and formats unstructured text into a clear and readable format. "
+                    "Do not include any introductory phrases, explanations, or disclaimers. Respond directly with the formatted output only."
+                    "Make sure to include all important details and key points in the organized text."
+                    "Do not provide a title for the overall organized text. Just the sections."
+                )
                 },
                 {
                     "role": "user",

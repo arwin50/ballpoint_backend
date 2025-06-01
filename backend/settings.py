@@ -10,25 +10,29 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
+import tempfile
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
 from django.conf import settings
+import dj_database_url
 
 load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ballpoint-461601-da6815b78495.json"
+google_creds_json = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+
+if google_creds_json:
+    temp = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
+    temp.write(google_creds_json.encode())
+    temp.flush()
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp.name
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = ["*"]
@@ -47,9 +51,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 # Application definition
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://10.0.2.2:8000",
-]
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -114,10 +116,11 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default='sqlite:///db.sqlite3',  # fallback
+        conn_max_age=600,  # persistent connections
+        ssl_require=True   # required for DO
+    )
 }
 
 
@@ -183,9 +186,9 @@ SIMPLE_JWT = {
 
 # Cloudinary
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'ballpoint',
-    'API_KEY': '133333639279382',
-    'API_SECRET': 'nHHcRAl9Mw6kMATRzeE7l9Ot2-4',
+    'CLOUD_NAME': os.getenv("CLOUDINARY_CLOUD_NAME"),
+    'API_KEY': os.getenv("CLOUDINARY_API_KEY"),
+    'API_SECRET': os.getenv("CLOUDINARY_API_SECRET"),
 }
 
 # Internationalization
@@ -214,3 +217,4 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = 'https://res.cloudinary.com/' + os.getenv('CLOUDINARY_CLOUD_NAME') + '/image/upload/'
