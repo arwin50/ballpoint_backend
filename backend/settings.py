@@ -14,13 +14,12 @@ from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
 from django.conf import settings
-import dj_database_url
-
 
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ballpoint-461601-da6815b78495.json"
 
 
 # Quick-start development settings - unsuitable for production
@@ -48,7 +47,9 @@ CORS_ORIGIN_ALLOW_ALL = True
 # Application definition
 
 CORS_ALLOW_CREDENTIALS = True
-
+CORS_ALLOWED_ORIGINS = [
+    "http://10.0.2.2:8000",
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -112,13 +113,11 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-
 DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///db.sqlite3',  # fallback
-        conn_max_age=600,  # persistent connections
-        ssl_require=True   # required for DO
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 
@@ -184,9 +183,9 @@ SIMPLE_JWT = {
 
 # Cloudinary
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
-    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+    'CLOUD_NAME': 'ballpoint',
+    'API_KEY': '133333639279382',
+    'API_SECRET': 'nHHcRAl9Mw6kMATRzeE7l9Ot2-4',
 }
 
 # Internationalization
@@ -206,12 +205,6 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
-
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -221,4 +214,3 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_URL = 'https://res.cloudinary.com/' + os.getenv('CLOUDINARY_CLOUD_NAME') + '/image/upload/'

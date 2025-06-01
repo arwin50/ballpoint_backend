@@ -14,7 +14,6 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
-from google.auth.exceptions import GoogleAuthError
 from dotenv import load_dotenv
 import os
 
@@ -102,8 +101,6 @@ def google_login_view(request):
     id_token_from_client = request.data.get('id_token')
     if not id_token_from_client:
         return Response({'error': 'ID token is required'}, status=status.HTTP_400_BAD_REQUEST)
-    
-   
  
     try:
         print("token", id_token_from_client)
@@ -113,11 +110,6 @@ def google_login_view(request):
             google_requests.Request(),
             os.getenv('GOOGLE_CLIENT_ID') 
         )
-        
-        print("ID Info audience:", id_info.get('aud'))
-        print("Expected audience:", os.getenv('GOOGLE_CLIENT_ID'))
-        
-        
         
         print('asdsadasd')
         email = id_info.get('email')
@@ -161,17 +153,8 @@ def google_login_view(request):
             "user": user_serializer.data
         }, status=status.HTTP_200_OK)
 
-    except ValueError as ve:
-        print("ValueError:", ve)
-        return Response({'error': str(ve)}, status=status.HTTP_400_BAD_REQUEST)
-
-    except GoogleAuthError as ge:
-        print("GoogleAuthError:", ge)
-        return Response({'error': str(ge)}, status=status.HTTP_400_BAD_REQUEST)
-
-    except Exception as e:
-        print("Unexpected error:", e)
-        return Response({'error': 'Unexpected error: ' + str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except ValueError:
+        return Response({'error': 'Invalid ID token'}, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])

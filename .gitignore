@@ -33,3 +33,6 @@ ENV/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Google Cloud Service Account Credentials
+ballpoint-461601-da6815b78495.json

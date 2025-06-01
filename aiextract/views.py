@@ -11,6 +11,10 @@ from .utils.ocr import process_ocr
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+from google.cloud import storage
+from google.cloud import speech_v1p1beta1 as speech
+import time
+from aiextract.utils.google_stt_utils import upload_to_gcs, get_encoding_from_filename
 
 load_dotenv()
 
@@ -43,12 +47,7 @@ def summarize_text(request):
     response = client.chat.completions.create(
         model="deepseek-chat",
         messages=[
-            {"role": "system", 
-             "content": (
-                          "You are a helpful assistant that summarizes text.\n"
-                           "Do not include any introductory phrases, explanations, or disclaimers. Respond directly with the summarize output only.\n"
-                           "Make sure to include all important details and key points in the summary."
-                         )},
+            {"role": "system", "content": "You are a helpful assistant that summarizes text."},
             {"role": "user", "content": f"Summarize this: {user_input}"},
         ],
         stream=False
@@ -57,40 +56,40 @@ def summarize_text(request):
     summary = response.choices[0].message.content
     return Response({"summary": summary})
 
-@api_view(['POST'])
-def whisper_transcribe(request):
-    try:
-        print("FILES:", request.FILES)
-        audio_file = request.FILES.get("audio") or request.FILES.get("file")  # fallback if key is "file"
+# @api_view(['POST'])
+# def whisper_transcribe(request):
+#     try:
+#         print("FILES:", request.FILES)
+#         audio_file = request.FILES.get("audio") or request.FILES.get("file")  # fallback if key is "file"
  
-        if not audio_file:
-            return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
+#         if not audio_file:
+#             return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
  
-        temp_dir = "temp_uploads"
-        os.makedirs(temp_dir, exist_ok=True)
+#         temp_dir = "temp_uploads"
+#         os.makedirs(temp_dir, exist_ok=True)
  
-        temp_filename = os.path.join(temp_dir, f"temp_{audio_file.name}")
+#         temp_filename = os.path.join(temp_dir, f"temp_{audio_file.name}")
  
-        with open(temp_filename, "wb+") as f:
-            for chunk in audio_file.chunks():
-                f.write(chunk)
+#         with open(temp_filename, "wb+") as f:
+#             for chunk in audio_file.chunks():
+#                 f.write(chunk)
  
-        print(f"Saved audio to: {temp_filename}")
+#         print(f"Saved audio to: {temp_filename}")
  
-        model = whisper.load_model("base")  # You can change this to "tiny", etc. for faster speed
-        result = model.transcribe(temp_filename)
-        transcript = result["text"]
+#         model = whisper.load_model("base")  # You can change this to "tiny", etc. for faster speed
+#         result = model.transcribe(temp_filename)
+#         transcript = result["text"]
  
-        return Response({"transcript": transcript})
+#         return Response({"transcript": transcript})
  
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return Response({"error": f"Exception occurred: {str(e)}"}, status=500)
+#     except Exception as e:
+#         import traceback
+#         traceback.print_exc()
+#         return Response({"error": f"Exception occurred: {str(e)}"}, status=500)
  
-    finally:
-        if os.path.exists(temp_filename):
-            os.remove(temp_filename)
+#     finally:
+#         if os.path.exists(temp_filename):
+#             os.remove(temp_filename)
                  
 @api_view(["POST"])
 def organize_text(request):
@@ -121,12 +120,7 @@ def organize_text(request):
             messages=[
                 {
                     "role": "system",
-                    "content": (
-                    "You are a helpful assistant that organizes and formats unstructured text into a clear and readable format. "
-                    "Do not include any introductory phrases, explanations, or disclaimers. Respond directly with the formatted output only."
-                    "Make sure to include all important details and key points in the organized text."
-                    "Do not provide a title for the overall organized text. Just the sections."
-                )
+                    "content": "You are a helpful assistant that organizes and formats unstructured text into a clear and readable format."
                 },
                 {
                     "role": "user",
@@ -208,3 +202,53 @@ def query_text(request):
 
     answer = response.choices[0].message.content
     return Response({"answer": answer})
+
+@api_view(["POST"])
+def async_transcribe(request):
+    try:
+        audio_file = request.FILES.get("audio") or request.FILES.get("file")
+        if not audio_file:
+            return Response({"error": "No audio file provided"}, status=400)
+
+        temp_dir = "temp_uploads"
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, audio_file.name)
+
+        with open(temp_path, "wb+") as f:
+            for chunk in audio_file.chunks():
+                f.write(chunk)
+
+        bucket_name = "ballpoint-bucket"
+        gcs_uri = upload_to_gcs(temp_path, bucket_name, f"uploads/{audio_file.name}")
+
+        client = speech.SpeechClient()
+        audio = speech.RecognitionAudio(uri=gcs_uri)
+        try:
+            encoding = get_encoding_from_filename(audio_file.name)
+        except ValueError as ve:
+            return Response({"error": str(ve)}, status=400)
+
+        config = speech.RecognitionConfig(
+            encoding=encoding,
+            sample_rate_hertz=16000,
+            language_code="en-US",
+            enable_automatic_punctuation=True
+        )
+
+        operation = client.long_running_recognize(config=config, audio=audio)
+        print("Waiting for operation to complete...")
+        response = operation.result(timeout=120)
+
+        transcript = ""
+        for result in response.results:
+            transcript += result.alternatives[0].transcript + " "
+
+        return Response({"transcript": transcript.strip()})
+
+    except Exception as e:
+        traceback.print_exc()
+        return Response({"error": f"Exception occurred: {str(e)}"}, status=500)
+
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
