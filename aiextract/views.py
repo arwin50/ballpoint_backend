@@ -1,5 +1,4 @@
 import os
-import whisper
 import traceback
 from rest_framework.views import APIView
 from rest_framework import status
@@ -11,9 +10,7 @@ from .utils.ocr import process_ocr
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
-from google.cloud import storage
 from google.cloud import speech_v1p1beta1 as speech
-import time
 from aiextract.utils.google_stt_utils import upload_to_gcs, get_encoding_from_filename
 from backend.settings import get_google_credentials
 
