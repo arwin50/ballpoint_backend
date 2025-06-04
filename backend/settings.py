@@ -10,16 +10,18 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
+import tempfile
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
 from django.conf import settings
+import dj_database_url
+
 
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ballpoint-461601-da6815b78495.json"
 
 
 # Quick-start development settings - unsuitable for production
@@ -47,6 +49,17 @@ CORS_ORIGIN_ALLOW_ALL = True
 # Application definition
 
 CORS_ALLOW_CREDENTIALS = True
+
+
+
+
+google_creds_json = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+
+if google_creds_json:
+    temp = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
+    temp.write(google_creds_json.encode())
+    temp.flush()
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp.name
 
 
 INSTALLED_APPS = [
@@ -112,10 +125,11 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default='sqlite:///db.sqlite3',
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 
@@ -202,6 +216,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static')
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
