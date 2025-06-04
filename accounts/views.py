@@ -16,6 +16,11 @@ from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 from dotenv import load_dotenv
 import os
+import random
+import string
+from django.core.mail import send_mail
+from django.conf import settings
+from django.core.cache import cache
 
 load_dotenv()
 
@@ -187,3 +192,148 @@ def upload_profile_picture(request):
             "profile_picture": user.profile_picture.url  # Cloudinary URL
         }, status=200)
     return Response({"error": "No photo uploaded."}, status=400)
+
+@api_view(["POST"])
+def forgot_password(request):
+    email = request.data.get('email')
+    if not email:
+        return Response(
+            {"message": "Email is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        # For security reasons, don't reveal if the email exists or not
+        return Response(
+            {"message": "If an account exists with this email, you will receive a verification code"},
+            status=status.HTTP_200_OK
+        )
+
+    # Only proceed if user exists
+    # Generate a 6-digit verification code
+    verification_code = ''.join(random.choices(string.digits, k=6))
+    
+    # Store the code in cache with 10 minutes expiration
+    cache_key = f'password_reset_{email}'
+    cache.set(cache_key, verification_code, 600)  # 600 seconds = 10 minutes
+
+    # Create a nice HTML email template
+    html_message = f"""
+    <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #2c3e50;">Password Reset Verification Code</h2>
+                <p>Hello {user.username},</p>
+                <p>We received a request to reset your password. Use the following verification code to proceed:</p>
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0;">
+                    <h1 style="color: #2c3e50; margin: 0; font-size: 32px;">{verification_code}</h1>
+                </div>
+                <p>This code will expire in 10 minutes.</p>
+                <p>If you didn't request this code, please ignore this email.</p>
+                <hr style="border: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #666; font-size: 12px;">This is an automated message, please do not reply to this email.</p>
+            </div>
+        </body>
+    </html>
+    """
+
+    # Send the verification code via email
+    try:
+        send_mail(
+            'Password Reset Verification Code',
+            f'Your verification code is: {verification_code}\n\nThis code will expire in 10 minutes.',
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+            html_message=html_message
+        )
+    except Exception as e:
+        print(f"Email sending error: {str(e)}")  # For debugging
+        return Response(
+            {"message": "Failed to send verification code"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    return Response(
+        {"message": "If an account exists with this email, you will receive a verification code"},
+        status=status.HTTP_200_OK
+    )
+
+@api_view(["POST"])
+def verify_code(request):
+    email = request.data.get('email')
+    code = request.data.get('code')
+
+    if not email or not code:
+        return Response(
+            {"message": "Email and verification code are required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Get the stored code from cache
+    cache_key = f'password_reset_{email}'
+    stored_code = cache.get(cache_key)
+
+    if not stored_code or stored_code != code:
+        return Response(
+            {"message": "Invalid or expired verification code"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Code is valid, generate a temporary token for password reset
+    try:
+        user = User.objects.get(email=email)
+        reset_token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+        cache.set(f'reset_token_{email}', reset_token, 600)  # 10 minutes expiration
+        return Response(
+            {"message": "Code verified successfully"},
+            status=status.HTTP_200_OK
+        )
+    except User.DoesNotExist:
+        return Response(
+            {"message": "Invalid email"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+@api_view(["POST"])
+def reset_password(request):
+    email = request.data.get('email')
+    code = request.data.get('code')
+    new_password = request.data.get('new_password')
+
+    if not all([email, code, new_password]):
+        return Response(
+            {"message": "Email, verification code, and new password are required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Verify the code again
+    cache_key = f'password_reset_{email}'
+    stored_code = cache.get(cache_key)
+
+    if not stored_code or stored_code != code:
+        return Response(
+            {"message": "Invalid or expired verification code"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user = User.objects.get(email=email)
+        user.set_password(new_password)
+        user.save()
+
+        # Clear the verification code and reset token from cache
+        cache.delete(cache_key)
+        cache.delete(f'reset_token_{email}')
+
+        return Response(
+            {"message": "Password has been reset successfully"},
+            status=status.HTTP_200_OK
+        )
+    except User.DoesNotExist:
+        return Response(
+            {"message": "Invalid email"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
