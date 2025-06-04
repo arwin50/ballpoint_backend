@@ -11,6 +11,8 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from google.cloud import speech_v1p1beta1 as speech
+import time
+from pydub import AudioSegment
 from aiextract.utils.google_stt_utils import upload_to_gcs, get_encoding_from_filename
 from backend.settings import get_google_credentials
 
@@ -45,12 +47,12 @@ def summarize_text(request):
     response = client.chat.completions.create(
         model="deepseek-chat",
         messages=[
-            {"role": "system", 
+             {"role": "system", 
              "content": (
                           "You are a helpful assistant that summarizes text.\n"
                            "Do not include any introductory phrases, explanations, or disclaimers. Respond directly with the summarize output only.\n"
                            "Make sure to include all important details and key points in the summary."
-                           "Strictly ensure that the text has limited styles (can be bold, italicized, underlined, bulleted or number bulleted; no defined font sizes and horizontal breaks)"
+                           "Strictly ensure that the text has limited styles (can be bold, italicized, underlined; no defined font sizes, horizontal breaks and bullets)"
                          )},
             {"role": "user", "content": f"Summarize this: {user_input}"},
         ],
@@ -132,10 +134,9 @@ def organize_text(request):
                     "Strictly ensure that the text has limited styles (can be bold, italicized, underlined, bulleted or number bulleted; no defined font sizes and horizontal breaks)"
                 )
                 },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+              
+                {"role": "user", "content": f"Organize this: {prompt}"},
+                
             ],
             stream=False
         )
@@ -165,7 +166,7 @@ def complete_text(request):
                 "but only if it is strongly related to the topic discussed in the note."
                 "Provide the final, polished completion or answer only."
                 "Avoid unnecessary explanations or disclaimers."
-                "Strictly ensure that the text has limited styles (can be bold, italicized, underlined, bulleted or number bulleted; no defined font sizes and horizontal breaks)"
+                 "Strictly ensure that the text has limited styles (can be bold, italicized, underlined; no defined font sizes, horizontal breaks and bullets)"
                 
             )},
             {"role": "user", "content": (
@@ -198,8 +199,8 @@ def query_text(request):
                 "You may include relevant external information, but only if it is directly related to the note's topic."
                 "Provide the final, polished completion or answer only."
                 "Avoid unnecessary explanations or disclaimers."
-                "Limit your response to 3-5 sentences.",
-                "Strictly ensure that the text has limited styles (can be bold, italicized, underlined, bulleted or number bulleted; no defined font sizes and horizontal breaks)"
+                "Limit your response to 3-5 sentences."
+                "Strictly ensure that the text has limited styles (can be bold, italicized, underlined; no defined font sizes, horizontal breaks and bullets)"
                 
             )},
             {"role": "user", "content": (
@@ -237,19 +238,19 @@ def async_transcribe(request):
         with open(temp_path, "wb+") as f:
             for chunk in audio_file.chunks():
                 f.write(chunk)
-        print(f"Saved uploaded file to: {temp_path}")
+        
+        audio_segment = AudioSegment.from_file(temp_path)
+        actual_sample_rate = audio_segment.frame_rate
+
+        converted_path = os.path.join(temp_dir, f"converted_{audio_file.name}")
+        sound = AudioSegment.from_file(temp_path)
+        sound = sound.set_channels(1) 
+        sound = sound.set_frame_rate(16000)
+        sound.export(converted_path, format="wav")
 
         bucket_name = "ballpoint-bucket"
-        
-        # Print before uploading to GCS
-        print(f"Uploading {temp_path} to bucket {bucket_name}")
-        gcs_uri = upload_to_gcs(temp_path, bucket_name, f"uploads/{audio_file.name}")
-        print(f"Uploaded file to GCS at {gcs_uri}")
-
-        # Check credentials info
+        gcs_uri = upload_to_gcs(converted_path, bucket_name, f"uploads/converted_{audio_file.name}")
         creds = get_google_credentials()
-        print(f"Using Google credentials for project_id: {creds.project_id}")
-
         client = speech.SpeechClient(credentials=creds)
         audio = speech.RecognitionAudio(uri=gcs_uri)
 
@@ -270,7 +271,7 @@ def async_transcribe(request):
         print("Calling Google Speech API long_running_recognize...")
         operation = client.long_running_recognize(config=config, audio=audio)
         print("Waiting for operation to complete...")
-        response = operation.result(timeout=120)
+        response = operation.result(timeout=300)
 
         transcript = ""
         for result in response.results:
@@ -286,6 +287,8 @@ def async_transcribe(request):
         return Response({"error": f"Exception occurred: {str(e)}"}, status=500)
 
     finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-            print(f"Cleaned up temporary file {temp_path}")
+        for path in [temp_path, converted_path]:
+            if os.path.exists(path):
+                os.remove(path)
+        if os.path.exists(temp_dir) and not os.listdir(temp_dir):
+            os.rmdir(temp_dir)

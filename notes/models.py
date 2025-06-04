@@ -11,6 +11,13 @@ class Category(models.Model):
     )
     label = models.CharField(max_length=255)
     color = models.CharField(max_length=50, blank=True, null=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='categories',
+        null=True,  # Allow null for existing records
+        blank=True  # Allow blank in forms
+    )
 
     def __str__(self):
         return self.label

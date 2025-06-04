@@ -4,7 +4,15 @@ from .models import NoteDocument, Category
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'label', 'color']
+        fields = ['id', 'label', 'color', 'user']
+        read_only_fields = ['user']  # Make user field read-only
+
+    def create(self, validated_data):
+        # Get the current user from the context
+        user = self.context['request'].user
+        # Create the category with the current user
+        category = Category.objects.create(user=user, **validated_data)
+        return category
 
     def to_internal_value(self, data):
         label = data.get('label')
@@ -40,7 +48,12 @@ class NoteDocumentSerializer(serializers.ModelSerializer):
 
         # Add the categories to the note document
         for category_data in categories_data:
-            category, created = Category.objects.get_or_create(**category_data)
+            # Create category with the current user
+            category = Category.objects.create(
+                user=user,
+                label=category_data['label'],
+                color=category_data.get('color', '')
+            )
             note_document.categories.add(category)
 
         return note_document
@@ -55,7 +68,12 @@ class NoteDocumentSerializer(serializers.ModelSerializer):
         if categories_data:
             category_instances = []
             for category_data in categories_data:
-                category, created = Category.objects.get_or_create(**category_data)
+                # Create or get category with the current user
+                category, created = Category.objects.get_or_create(
+                    user=instance.user,
+                    label=category_data['label'],
+                    defaults={'color': category_data.get('color', '')}
+                )
                 category_instances.append(category)
             instance.categories.set(category_instances)
 
