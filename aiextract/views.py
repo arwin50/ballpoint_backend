@@ -50,6 +50,7 @@ def summarize_text(request):
                           "You are a helpful assistant that summarizes text.\n"
                            "Do not include any introductory phrases, explanations, or disclaimers. Respond directly with the summarize output only.\n"
                            "Make sure to include all important details and key points in the summary."
+                           "Strictly ensure that the text has limited styles (can be bold, italicized, underlined, bulleted or number bulleted; no defined font sizes and horizontal breaks)"
                          )},
             {"role": "user", "content": f"Summarize this: {user_input}"},
         ],
@@ -128,6 +129,7 @@ def organize_text(request):
                     "Do not include any introductory phrases, explanations, or disclaimers. Respond directly with the formatted output only."
                     "Make sure to include all important details and key points in the organized text."
                     "Do not provide a title for the overall organized text. Just the sections."
+                    "Strictly ensure that the text has limited styles (can be bold, italicized, underlined, bulleted or number bulleted; no defined font sizes and horizontal breaks)"
                 )
                 },
                 {
@@ -163,6 +165,7 @@ def complete_text(request):
                 "but only if it is strongly related to the topic discussed in the note."
                 "Provide the final, polished completion or answer only."
                 "Avoid unnecessary explanations or disclaimers."
+                "Strictly ensure that the text has limited styles (can be bold, italicized, underlined, bulleted or number bulleted; no defined font sizes and horizontal breaks)"
                 
             )},
             {"role": "user", "content": (
@@ -195,7 +198,8 @@ def query_text(request):
                 "You may include relevant external information, but only if it is directly related to the note's topic."
                 "Provide the final, polished completion or answer only."
                 "Avoid unnecessary explanations or disclaimers."
-                "Limit your response to 3-5 sentences."
+                "Limit your response to 3-5 sentences.",
+                "Strictly ensure that the text has limited styles (can be bold, italicized, underlined, bulleted or number bulleted; no defined font sizes and horizontal breaks)"
                 
             )},
             {"role": "user", "content": (
