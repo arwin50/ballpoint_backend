@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from google.cloud import storage
 from google.cloud import speech_v1p1beta1 as speech
 import time
+from pydub import AudioSegment
 from aiextract.utils.google_stt_utils import upload_to_gcs, get_encoding_from_filename
 
 load_dotenv()
@@ -216,9 +217,18 @@ def async_transcribe(request):
         with open(temp_path, "wb+") as f:
             for chunk in audio_file.chunks():
                 f.write(chunk)
+        
+        audio_segment = AudioSegment.from_file(temp_path)
+        actual_sample_rate = audio_segment.frame_rate
+
+        converted_path = os.path.join(temp_dir, f"converted_{audio_file.name}")
+        sound = AudioSegment.from_file(temp_path)
+        sound = sound.set_channels(1) 
+        sound = sound.set_frame_rate(16000)
+        sound.export(converted_path, format="wav")
 
         bucket_name = "ballpoint-bucket"
-        gcs_uri = upload_to_gcs(temp_path, bucket_name, f"uploads/{audio_file.name}")
+        gcs_uri = upload_to_gcs(converted_path, bucket_name, f"uploads/converted_{audio_file.name}")
 
         client = speech.SpeechClient()
         audio = speech.RecognitionAudio(uri=gcs_uri)
@@ -236,7 +246,7 @@ def async_transcribe(request):
 
         operation = client.long_running_recognize(config=config, audio=audio)
         print("Waiting for operation to complete...")
-        response = operation.result(timeout=120)
+        response = operation.result(timeout=300)
 
         transcript = ""
         for result in response.results:
@@ -249,5 +259,8 @@ def async_transcribe(request):
         return Response({"error": f"Exception occurred: {str(e)}"}, status=500)
 
     finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+        for path in [temp_path, converted_path]:
+            if os.path.exists(path):
+                os.remove(path)
+        if os.path.exists(temp_dir) and not os.listdir(temp_dir):
+            os.rmdir(temp_dir)
