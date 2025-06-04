@@ -1,13 +1,14 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import CustomUser
+from notes.serializers import CategorySerializer
 
 class CustomUserSerializer(serializers.ModelSerializer):
     profile_picture = serializers.SerializerMethodField()
     
     class Meta:
         model = CustomUser
-        fields = ["id", "username", "email", "date_joined", "profile_picture"]
+        fields = ["id", "username", "email", "date_joined", "profile_picture", ]
         read_only_fields = ['profile_picture_url']
 
     def get_profile_picture(self, obj):

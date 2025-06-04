@@ -13,28 +13,38 @@ from rest_framework.response import Response
 from rest_framework import status
 
 class CategoryCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request):
-        serializer = CategorySerializer(data=request.data)
+        serializer = CategorySerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class CategoryUpdateView(UpdateAPIView):
-    queryset = Category.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = CategorySerializer
     lookup_field = 'id'
 
+    def get_queryset(self):
+        return Category.objects.filter(user=self.request.user)
+
 class CategoryListView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def get(self, request):
-        categories = Category.objects.all()
+        categories = Category.objects.filter(user=request.user)
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data)
     
 class CategoryDeleteView(DestroyAPIView):
-    queryset = Category.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = CategorySerializer
     lookup_field = 'id'
+
+    def get_queryset(self):
+        return Category.objects.filter(user=self.request.user)
 
 class NoteDocumentListCreate(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
@@ -115,25 +125,18 @@ class UpdateNoteCategoriesView(APIView):
 
 class CategoryListCreate(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
-class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
-    lookup_field = "label"
     def get_queryset(self):
-        user = self.request.user
-        return NoteDocument.objects.filter(user=user) 
+        return Category.objects.filter(user=self.request.user)
 
-class CategoryListCreate(generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
-    queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    lookup_field = "label"
+    lookup_field = "id"
+
+    def get_queryset(self):
+        return Category.objects.filter(user=self.request.user)
