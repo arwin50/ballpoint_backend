@@ -166,7 +166,7 @@ def complete_text(request):
                 "but only if it is strongly related to the topic discussed in the note."
                 "Provide the final, polished completion or answer only."
                 "Avoid unnecessary explanations or disclaimers."
-                 "Strictly ensure that the text has limited styles (can be bold, italicized, underlined,  no defined font sizes and horizontal breaks), plain text is ideal"
+                "Strictly ensure that the text has limited styles (can be bold, italicized, underlined,  no defined font sizes and horizontal breaks), plain text is ideal"
                 
             )},
             {"role": "user", "content": (
