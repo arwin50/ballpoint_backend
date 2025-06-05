@@ -235,7 +235,7 @@ def async_transcribe(request):
         bucket_name = "ballpoint-bucket"
         gcs_uri = upload_to_gcs(temp_path, bucket_name, f"uploads/converted_{audio_file.name}")
 
-        client = speech.SpeechClient(credentials=get_google_credentials())
+        client = speech.SpeechClient()
         audio = speech.RecognitionAudio(uri=gcs_uri)
         try:
             encoding = get_encoding_from_filename(audio_file.name)
