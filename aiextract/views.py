@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from backend.settings import get_google_credentials
 from .utils.ocr import process_ocr
 from openai import OpenAI
 import os
@@ -243,7 +244,7 @@ def async_transcribe(request):
         bucket_name = "ballpoint-bucket"
         gcs_uri = upload_to_gcs(converted_path, bucket_name, f"uploads/converted_{audio_file.name}")
 
-        client = speech.SpeechClient()
+        client = speech.SpeechClient(credentials=get_google_credentials())
         audio = speech.RecognitionAudio(uri=gcs_uri)
         try:
             encoding = get_encoding_from_filename(audio_file.name)

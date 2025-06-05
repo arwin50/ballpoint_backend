@@ -1,9 +1,10 @@
 from google.cloud import storage
 from google.cloud import speech_v1p1beta1 as speech
+from backend.settings import get_google_credentials
 import mimetypes
 
 def upload_to_gcs(local_path, bucket_name, destination_blob_name):
-    storage_client = storage.Client()
+    storage_client = storage.Client(credentials=get_google_credentials())
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
     blob.upload_from_filename(local_path)

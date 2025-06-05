@@ -18,6 +18,7 @@ from django.conf import settings
 import dj_database_url
 
 
+
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -50,16 +51,19 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 CORS_ALLOW_CREDENTIALS = True
 
+def get_google_credentials():
+    b64_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if not b64_creds:
+        raise Exception("Missing GOOGLE_CREDENTIALS_B64 env var")
 
+    try:
+        json_bytes = base64.b64decode(b64_creds)
+        info = json.loads(json_bytes)
+        credentials = service_account.Credentials.from_service_account_info(info)
+        return credentials
+    except Exception as e:
+        raise Exception(f"Failed to parse Google credentials: {str(e)}")
 
-
-google_creds_json = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-
-if google_creds_json:
-    temp = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
-    temp.write(google_creds_json.encode())
-    temp.flush()
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp.name
 
 
 INSTALLED_APPS = [
