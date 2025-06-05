@@ -11,11 +11,14 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 import tempfile
+import base64
+import json
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
 from django.conf import settings
 import dj_database_url
+from google.oauth2 import service_account
 
 
 
@@ -55,15 +58,24 @@ CORS_ALLOW_CREDENTIALS = True
 def get_google_credentials():
     b64_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if not b64_creds:
-        raise Exception("Missing GOOGLE_CREDENTIALS_B64 env var")
+        raise Exception("Missing GOOGLE_APPLICATION_CREDENTIALS env var")
 
     try:
-        json_bytes = base64.b64decode(b64_creds)
-        info = json.loads(json_bytes)
-        credentials = service_account.Credentials.from_service_account_info(info)
+        # Create a temporary file to store the credentials
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
+            temp_file.write(b64_creds)
+            temp_file.flush()
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_file.name
+            
+        # Get credentials using the temporary file
+        credentials = service_account.Credentials.from_service_account_file(temp_file.name)
         return credentials
     except Exception as e:
         raise Exception(f"Failed to parse Google credentials: {str(e)}")
+    finally:
+        # Clean up the temporary file
+        if 'temp_file' in locals():
+            os.unlink(temp_file.name)
 
 
 
