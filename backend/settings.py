@@ -61,8 +61,15 @@ def get_google_credentials():
         raise Exception("Missing GOOGLE_APPLICATION_CREDENTIALS env var")
 
     try:
+        # Clean the base64 string by removing any whitespace and newlines
+        b64_creds = b64_creds.strip().replace('\n', '').replace(' ', '')
+        
         # Decode base64 credentials
-        json_str = base64.b64decode(b64_creds).decode('utf-8')
+        try:
+            json_str = base64.b64decode(b64_creds).decode('utf-8')
+        except UnicodeDecodeError:
+            # If utf-8 fails, try latin-1
+            json_str = base64.b64decode(b64_creds).decode('latin-1')
         
         # Create a temporary file to store the credentials
         with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
