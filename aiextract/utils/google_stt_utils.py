@@ -4,7 +4,7 @@ from backend.settings import get_google_credentials
 import mimetypes
 
 def upload_to_gcs(local_path, bucket_name, destination_blob_name):
-    storage_client = storage.Client(credentials=get_google_credentials())
+    storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
     blob.upload_from_filename(local_path)
